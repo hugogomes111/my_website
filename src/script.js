@@ -168,7 +168,13 @@ window.addEventListener("load", () => {
       scrollTrigger: {
         trigger: ".wrapper",
         start: "top top",
-        end: "+=2700%",
+        // Foi aumentado de 2700% porque adicionámos mais conteúdo à timeline
+        // (os cards de projetos) — isto mantém o mesmo ritmo de scroll do
+        // resto da timeline e ainda dá um pouco de "folga" no fim para os
+        // cards ficarem visíveis antes de se avançar para a secção Experience.
+        // Se ajustares a duração das animações dos cards, o ideal é
+        // reajustar este valor um pouco também.
+        end: "+=4100%",
         pin: true,
         scrub: true,
         markers: false,
@@ -401,6 +407,38 @@ window.addEventListener("load", () => {
   );
 
   tl.addLabel("projectsEnd", "projectsZoomStart+=4");
+
+  // 7. Depois do zoom, o título ("j" gigante) esvai-se e dá lugar a uns
+  // cards ilustrativos com os projetos, ainda sobre a mesma imagem de fundo
+  tl.to(
+    projTitle,
+    { autoAlpha: 0, duration: 1 },
+    "projectsEnd+=0.3"
+  );
+
+  tl.addLabel("projectsListReveal", "projectsEnd+=1.3");
+
+  tl.to(
+    ".project-list",
+    { autoAlpha: 1, duration: 1 },
+    "projectsListReveal"
+  );
+
+  // Cada card entra com um pequeno atraso em relação ao anterior (stagger),
+  // em vez de todos aparecerem ao mesmo tempo
+  tl.fromTo(
+    ".project-entry",
+    { y: 30, autoAlpha: 0 },
+    {
+      y: 0,
+      autoAlpha: 1,
+      duration: 1,
+      stagger: 0.18,
+    },
+    "projectsListReveal+=0.2"
+  );
+
+  tl.addLabel("projectsListEnd", "projectsListReveal+=3");
 
   // Depois do ScrollTrigger recalcular tudo (o momento em que a posição
   // costuma "saltar" num refresh), força outra vez o scroll ao topo
