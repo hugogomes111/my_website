@@ -168,13 +168,12 @@ window.addEventListener("load", () => {
       scrollTrigger: {
         trigger: ".wrapper",
         start: "top top",
-        // Foi aumentado de 2700% porque adicionámos mais conteúdo à timeline
-        // (os cards de projetos) — isto mantém o mesmo ritmo de scroll do
-        // resto da timeline e ainda dá um pouco de "folga" no fim para os
-        // cards ficarem visíveis antes de se avançar para a secção Experience.
-        // Se ajustares a duração das animações dos cards, o ideal é
-        // reajustar este valor um pouco também.
-        end: "+=4100%",
+        // O ficheiro original tinha end: "+=2700%" para uma timeline de 17
+        // unidades (~159% de scroll por unidade) — esse é o ritmo mantido
+        // aqui. O valor extra no fim dá aos cards tempo parados no ecrã
+        // (por isso continuamente clicáveis) e espaço para o fade-out deles
+        // terminar antes de o pin soltar, em vez de saírem a meio da animação.
+        end: "+=2890%",
         pin: true,
         scrub: true,
         markers: false,
@@ -361,6 +360,13 @@ window.addEventListener("load", () => {
     "whoEnd"
   );
 
+  // O ".who-overlay" (o contentor, não só o texto lá dentro) tem de
+  // desvanecer também — sem isto ficava com opacity:1 pelo resto do
+  // scroll, cobrindo o ecrã todo (sem se ver nada, por não ter fundo) e a
+  // interceptar cliques/hover de tudo o que vem a seguir, incluindo os
+  // cards de projetos
+  tl.to(".who-overlay", { autoAlpha: 0, duration: 1 }, "whoEnd");
+
   tl.addLabel("projectsReveal", "whoEnd+=1.2");
 
   tl.to(
@@ -373,7 +379,7 @@ window.addEventListener("load", () => {
   // faz zoom (scale), ancorada exatamente na perna vertical do "j" via
   // transform-origin — assim ela cresce sempre a partir desse ponto exato,
   // sem cálculos de compensação que se desalinham com o zoom
-  tl.addLabel("projectsZoomStart", "projectsReveal+=2.5");
+  tl.addLabel("projectsZoomStart", "projectsReveal+=1");
 
   const projTitle = document.querySelector(".projects-teaser h2");
   const midLetter = document.querySelector(".mid-letter");
@@ -406,39 +412,59 @@ window.addEventListener("load", () => {
     "projectsZoomStart"
   );
 
-  tl.addLabel("projectsEnd", "projectsZoomStart+=4");
+  tl.addLabel("projectsEnd", "projectsZoomStart+=2.2");
 
-  // 7. Depois do zoom, o título ("j" gigante) esvai-se e dá lugar a uns
-  // cards ilustrativos com os projetos, ainda sobre a mesma imagem de fundo
+  // 7. Em vez de o "j" desvanecer, o fundo passa a ficar com a mesma cor
+  // dele (branco) — o "j" funde-se visualmente com o fundo em vez de
+  // desaparecer, e é sobre essa cor que os cards de projetos aparecem
   tl.to(
-    projTitle,
-    { autoAlpha: 0, duration: 1 },
-    "projectsEnd+=0.3"
+    ".color-fill",
+    { autoAlpha: 1, duration: 0.4 },
+    "projectsEnd"
   );
-
-  tl.addLabel("projectsListReveal", "projectsEnd+=1.3");
 
   tl.to(
     ".project-list",
-    { autoAlpha: 1, duration: 1 },
-    "projectsListReveal"
+    { autoAlpha: 1, duration: 0.4 },
+    "projectsEnd"
   );
 
-  // Cada card entra com um pequeno atraso em relação ao anterior (stagger),
-  // em vez de todos aparecerem ao mesmo tempo
+  // Todos os cards aparecem ao mesmo tempo (sem stagger). Anima-se o
+  // ".project-entry-inner" (o conteúdo), nunca o ".project-entry" (o botão)
+  // em si — assim o GSAP nunca escreve um transform em linha no botão, e o
+  // transform do :hover no CSS (translateY) funciona sempre sem conflito
   tl.fromTo(
-    ".project-entry",
+    ".project-entry-inner",
     { y: 30, autoAlpha: 0 },
     {
       y: 0,
       autoAlpha: 1,
-      duration: 1,
-      stagger: 0.18,
+      duration: 0.4,
+      clearProps: "transform",
     },
-    "projectsListReveal+=0.2"
+    "projectsEnd"
   );
 
-  tl.addLabel("projectsListEnd", "projectsListReveal+=3");
+  tl.addLabel("projectsListEnd", "projectsEnd+=1");
+
+  // Dá aos cards um bocado de tempo parados no ecrã (dwell) antes de
+  // começarem a desvanecer — sem isto desapareciam logo a seguir a aparecer
+  tl.addLabel("projectsFadeOut", "projectsListEnd+=0.9");
+
+  // Saída simétrica à entrada: em vez de os cards "subirem" com o resto da
+  // página quando o pin solta, desvanecem-se (e descem ligeiramente,
+  // espelhando o movimento de entrada) enquanto ainda estão fixos no ecrã
+  tl.to(
+    ".project-entry-inner",
+    { y: 30, autoAlpha: 0, duration: 0.4 },
+    "projectsFadeOut"
+  );
+
+  tl.to(
+    ".project-list",
+    { autoAlpha: 0, duration: 0.4 },
+    "projectsFadeOut"
+  );
 
   // Depois do ScrollTrigger recalcular tudo (o momento em que a posição
   // costuma "saltar" num refresh), força outra vez o scroll ao topo
@@ -446,6 +472,18 @@ window.addEventListener("load", () => {
     lenis.scrollTo(0, { immediate: true })
   );
   ScrollTrigger.refresh();
+
+  // Reforço do efeito de hover dos cards via JS (além do :hover no CSS),
+  // para garantir que funciona mesmo que algum detalhe do browser impeça
+  // o :hover de disparar corretamente
+  document.querySelectorAll(".project-entry").forEach((card) => {
+    card.addEventListener("pointerenter", () => {
+      card.classList.add("is-hovering");
+    });
+    card.addEventListener("pointerleave", () => {
+      card.classList.remove("is-hovering");
+    });
+  });
 
   // Clique nos links da barra de navegação — usa o lenis.scrollTo (em vez do
   // salto nativo do href="#...") para o scroll suave não entrar em conflito.
