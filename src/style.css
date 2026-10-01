@@ -370,6 +370,168 @@ body {
   color: #4a4a4a;
 }
 
+/* Overlay dentro do .wrapper (o mesmo pin da introdução): aparece com fade
+   por cima do fundo branco, como os cards. Começa com visibility:hidden
+   para não interceptar cliques nos cards de projetos enquanto está invisível */
+.exp-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  z-index: 13;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 40px;
+  overflow: hidden;
+  opacity: 0;
+  visibility: hidden;
+}
+
+.exp-overlay h2 {
+  font-family: "IBM Plex Mono", monospace;
+  font-weight: 400;
+  font-size: 1.4rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #4a4a4a;
+  text-align: center;
+}
+
+.exp-viewport {
+  position: relative;
+  width: 100%;
+  height: 90px;
+  overflow: hidden;
+}
+
+/* Sem transform aqui: o GSAP gere o transform do trilho (x), por isso a
+   centragem vertical faz-se com altura total + align-items nos slots */
+.exp-track {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  width: 400vw;
+  height: 100%;
+}
+
+.exp-track-line {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  margin-top: -1.5px;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.exp-slot {
+  position: relative;
+  width: 100vw;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Estado por defeito = "ainda por visitar": só contorno. O fundo branco tapa
+   a linha por trás, por isso a bola parece oca. O GSAP enche-a a preto
+   (backgroundColor) quando o marco chega ao centro. */
+.exp-dot {
+  position: relative;
+  z-index: 1;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid #111111;
+}
+
+/* Indicador de progresso (4 pontinhos) no fundo do ecrã, dentro do overlay
+   da Experience — desvanece junto com ele */
+.exp-progress {
+  position: absolute;
+  bottom: 36px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.exp-progress-dot {
+  display: block;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.16);
+}
+
+.exp-text-stack {
+  position: relative;
+  width: 90%;
+  max-width: 620px;
+  min-height: 380px;
+}
+
+/* Também sem transform (o GSAP anima o y/opacidade destes blocos) */
+.exp-text {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  opacity: 0;
+}
+
+.timeline-icon {
+  display: block;
+  width: 24px;
+  height: 24px;
+  color: #111111;
+  opacity: 0.8;
+  margin-bottom: 14px;
+}
+
+.exp-text h3 {
+  font-family: "IBM Plex Mono", monospace;
+  font-weight: 500;
+  font-size: 1rem;
+  letter-spacing: 0.02em;
+  line-height: 1.4;
+  color: #111111;
+  margin-bottom: 16px;
+}
+
+.exp-text ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.exp-text li {
+  position: relative;
+  padding-left: 14px;
+  font-family: "Roboto", system-ui;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: rgba(0, 0, 0, 0.62);
+}
+
+.exp-text li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.6em;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.32);
+}
+
 .who-overlay {
   position: absolute;
   top: 0;
@@ -590,5 +752,93 @@ body {
 
   .who-block {
     min-height: 50vh;
+  }
+}
+
+/* Anel que se expande à volta da bola quando ela dá zoom. Tamanho inicial =
+   o da bola já com zoom (14px x 2.2 ~ 30px); o GSAP cresce width/height (e
+   não scale) para a espessura do traço não engrossar. */
+.exp-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 30px;
+  height: 30px;
+  margin: -15px 0 0 -15px;
+  border: 1.5px solid #111111;
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Pulso preto que se propaga pela linha a partir da bola: ocupa o slot
+   (100vw, centrado na bola) e o GSAP anima scaleX (0 -> 1) e a opacidade.
+   As pontas são suaves para o escurecimento parecer gradual. */
+.exp-line-pulse {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  margin-top: -1.5px;
+  background: linear-gradient(
+    to right,
+    rgba(17, 17, 17, 0) 0%,
+    #111111 18%,
+    #111111 82%,
+    rgba(17, 17, 17, 0) 100%
+  );
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Etiquetas de tecnologias de cada marco */
+.exp-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.exp-tags span {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.03em;
+  color: rgba(0, 0, 0, 0.6);
+  padding: 4px 10px;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 999px;
+}
+
+
+/* Camada de fundo da Experience: um pequeno desenho de traço por marco,
+   encostado ao lado direito (fora da coluna de texto), que troca com um
+   fade quando o marco muda e se desloca muito pouco (uns pixels) enquanto
+   o trilho desliza 100vw — por andar bem mais devagar, sente-se mais ao
+   fundo (parallax). Escondido em ecrãs estreitos, onde não há espaço para
+   não sobrepor o texto. */
+.exp-bg {
+  position: absolute;
+  top: 50%;
+  right: 5%;
+  width: clamp(130px, 14vw, 210px);
+  height: clamp(130px, 14vw, 210px);
+  transform: translateY(-50%);
+  z-index: 0;
+  color: #111111;
+  pointer-events: none;
+}
+
+.exp-bg-motif {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+}
+
+@media (max-width: 1080px) {
+  .exp-bg {
+    display: none;
   }
 }
