@@ -170,10 +170,14 @@ window.addEventListener("load", () => {
         start: "top top",
         // O ficheiro original tinha end: "+=2700%" para uma timeline de 17
         // unidades (~159% de scroll por unidade) — esse ritmo mantém-se.
-        // A timeline agora vai até ~23.2 unidades (introdução + projetos +
-        // carrossel da Experience) + ~0.2 de folga = ~23.4 x 159% = 3720%.
+        // A timeline agora vai até ~22.7 unidades (introdução + projetos +
+        // carrossel da Experience) + ~0.2 de folga = ~22.9 x 159% = 3640%.
         // Se mudares durações lá em baixo, ajusta isto na mesma proporção.
-        end: "+=3720%",
+        // Antes 3640%. Só os cards foram encurtados (CARDS_IN / CARDS_OUT,
+        // menos 0.5 unidades no total): 22.2 unidades x ~160% ~ 3559%.
+        // Se mudares CARDS_IN ou CARDS_OUT, ajusta isto na mesma proporção
+        // (cada 1 unidade a menos = menos ~160% aqui).
+        end: "+=3559%",
         pin: true,
         scrub: true,
         markers: false,
@@ -414,18 +418,25 @@ window.addEventListener("load", () => {
 
   tl.addLabel("projectsEnd", "projectsZoomStart+=2.2");
 
+  // Duração (em unidades da timeline, ~159% de scroll cada) da entrada e da
+  // saída dos cards. Antes eram 0.4 + 0.05 de pausa + 0.4 (+0.35 até ao
+  // início da Experience). Quanto mais pequenos, menos scroll com os cards
+  // no ecrã — se mexeres aqui, acerta o "end" do ScrollTrigger lá em cima.
+  const CARDS_IN = 0.15;
+  const CARDS_OUT = 0.15;
+
   // 7. Em vez de o "j" desvanecer, o fundo passa a ficar com a mesma cor
   // dele (branco) — o "j" funde-se visualmente com o fundo em vez de
   // desaparecer, e é sobre essa cor que os cards de projetos aparecem
   tl.to(
     ".color-fill",
-    { autoAlpha: 1, duration: 0.4 },
+    { autoAlpha: 1, duration: CARDS_IN },
     "projectsEnd"
   );
 
   tl.to(
     ".project-list",
-    { autoAlpha: 1, duration: 0.4 },
+    { autoAlpha: 1, duration: CARDS_IN },
     "projectsEnd"
   );
 
@@ -439,16 +450,16 @@ window.addEventListener("load", () => {
     {
       y: 0,
       autoAlpha: 1,
-      duration: 0.4,
+      duration: CARDS_IN,
       ease: "power1.out",
       clearProps: "transform",
     },
     "projectsEnd"
   );
 
-  // Dá aos cards um bocado (mais curto que antes) de tempo parados no ecrã
-  // antes de começarem a desvanecer
-  tl.addLabel("projectsFadeOut", "projectsEnd+=0.7");
+  // Os cards ficam só o mínimo parados no ecrã (acabam de aparecer em +0.4)
+  // antes de começarem a desvanecer — é também o ponto de descanso do snap
+  tl.addLabel("projectsFadeOut", `projectsEnd+=${CARDS_IN}`);
 
   // Saída no mesmo estilo da entrada (fade + deslocamento), só que na
   // direção contrária: em vez de subir para o lugar a aparecer, os cards
@@ -457,7 +468,7 @@ window.addEventListener("load", () => {
   // a "subir" junto com o resto da página ao soltar o pin.
   tl.to(
     ".project-entry-inner",
-    { y: -30, autoAlpha: 0, duration: 0.4, ease: "power1.in" },
+    { y: -30, autoAlpha: 0, duration: CARDS_OUT, ease: "power1.in" },
     "projectsFadeOut"
   );
 
@@ -466,7 +477,7 @@ window.addEventListener("load", () => {
   // voltar a criar o conflito de inline-transform com o :hover no CSS
   tl.to(
     ".project-entry",
-    { autoAlpha: 0, duration: 0.4, ease: "power1.in" },
+    { autoAlpha: 0, duration: CARDS_OUT, ease: "power1.in" },
     "projectsFadeOut"
   );
 
@@ -667,7 +678,7 @@ window.addEventListener("load", () => {
     }
 
     // Entra logo a seguir ao fade-out dos cards (que acaba em projectsFadeOut+0.4)
-    tl.addLabel("experienceReveal", "projectsFadeOut+=0.6");
+    tl.addLabel("experienceReveal", `projectsFadeOut+=${CARDS_OUT}`);
 
     // Título + linha aparecem no ecrã, com o mesmo estilo de entrada dos
     // cards (fade + pequena subida)
@@ -777,17 +788,26 @@ window.addEventListener("load", () => {
   ];
   if (tl.scrollTrigger && SNAP_LABELS.every((l) => l in tl.labels)) {
     const TOL = 2; // px de tolerância
-    const JUMP_MS = 1600; // duração de cada salto (maior = mais lento)
-    const ease = (t) =>
-      t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; // easeInOutCubic
+    const JUMP_MS = 2200; // duração de cada salto = ritmo das animações (maior = mais lento)
+    const LOCK_MS = 1000; // durante este tempo, a cauda da inércia é ignorada
+    const MIN_GAP = 400; // tempo mínimo entre dois saltos seguidos
+    const EXTRA_PX = 100; // scroll "a sério" que conta como novo gesto
+    const NOTCH_PX = 40; // só eventos deste tamanho contam (a cauda da inércia é pequena)
+    // easeOutQuad: arranca logo ao toque (sem "atraso" inicial) mas com uma
+    // desaceleração suave e repartida pelo salto todo (em vez de gastar quase
+    // tudo no início), por isso as animações da timeline passam ao ritmo certo
+    const ease = (t) => 1 - (1 - t) * (1 - t);
     const getPts = () => SNAP_LABELS.map((l) => tl.scrollTrigger.labelToScroll(l));
 
     // Ponto para onde ir a partir da posição atual, na direção d (1 = a
     // descer, -1 = a subir). Devolve null quando estamos fora do intervalo
     // (aí o scroll normal do Lenis fica a tratar de tudo)
+    // Se um salto ainda vai a caminho, parte do destino dele (assim dá para
+    // encadear: um novo scroll durante o salto segue logo para o ponto a
+    // seguir, sem esperar que o anterior acabe)
     function stepTarget(d) {
       const pts = getPts();
-      const y = lenis.scroll;
+      const y = performance.now() < animEnd ? currentTarget : lenis.scroll;
       const last = pts[pts.length - 1];
       if (d > 0) {
         if (y < pts[0] - TOL || y >= last - TOL) return null;
@@ -799,11 +819,25 @@ window.addEventListener("load", () => {
       return t === undefined ? null : t;
     }
 
-    let lockUntil = 0; // enquanto o salto anda, ignora mais scroll
+    let lockUntil = 0; // cauda da inércia do gesto que provocou o salto
+    let animEnd = 0; // quando o salto atual acaba
+    let currentTarget = 0; // destino do salto atual
+    let jumpDir = 0;
+    let lastJumpAt = 0;
     let lastUserInput = 0; // último gesto do utilizador (roda/toque/teclado)
     function jump(target) {
-      lockUntil = performance.now() + JUMP_MS + 60;
-      lenis.scrollTo(target, { duration: JUMP_MS / 1000, easing: ease, force: true });
+      const now = performance.now();
+      const chained = now < animEnd; // já ia a meio de outro salto
+      jumpDir = target > (chained ? currentTarget : lenis.scroll) ? 1 : -1;
+      lockUntil = now + LOCK_MS;
+      animEnd = now + JUMP_MS;
+      lastJumpAt = now;
+      currentTarget = target;
+      lenis.scrollTo(target, {
+        duration: JUMP_MS / 1000,
+        easing: ease,
+        force: true,
+      });
     }
 
     // Roda / trackpad. Em capture + stopImmediatePropagation para o Lenis
@@ -814,6 +848,8 @@ window.addEventListener("load", () => {
     let lastWheelDir = 0;
     let gestureHandled = false; // este gesto já provocou um salto?
     let extraScroll = 0; // scroll acumulado depois do salto acabar
+    let recentPx = []; // tamanho dos últimos eventos da roda
+    let gesturePeak = 0; // maior evento do gesto atual
     window.addEventListener(
       "wheel",
       (e) => {
@@ -828,6 +864,8 @@ window.addEventListener("load", () => {
         if (fresh) {
           gestureHandled = false;
           extraScroll = 0;
+          recentPx = [];
+          gesturePeak = 0;
         }
         // Resto da inércia de um gesto que já saltou: engole tudo (mesmo
         // quando o salto acabou de chegar ao limite do intervalo), para o
@@ -835,11 +873,19 @@ window.addEventListener("load", () => {
         // acabou e continuas a fazer scroll a sério (mais de ~250px sem
         // pausa, bem mais do que a cauda de uma inércia), conta como um
         // novo gesto — senão, a rolar sem parar, o site ficava parado
+        const px = Math.abs(e.deltaY) * (e.deltaMode === 1 ? 33 : e.deltaMode === 2 ? 800 : 1);
+        const prevMax = recentPx.length ? Math.max(...recentPx) : 0;
+        gesturePeak = Math.max(gesturePeak, px);
+        recentPx.push(px);
+        if (recentPx.length > 4) recentPx.shift();
         if (gestureHandled) {
           if (now >= lockUntil) {
-            const px = Math.abs(e.deltaY) * (e.deltaMode === 1 ? 33 : e.deltaMode === 2 ? 800 : 1);
-            extraScroll += px;
-            if (extraScroll > 250) {
+            // A cauda da inércia decai (eventos pequenos): ignora. Conta como
+            // novo gesto se voltares a acelerar, ou se continuares a rolar
+            // com eventos "de roda" (>= NOTCH_PX) até somar EXTRA_PX
+            if (px >= Math.max(NOTCH_PX, gesturePeak * 0.35)) extraScroll += px;
+            const reaccel = prevMax > 0 && px > 30 && px > prevMax * 1.6;
+            if (extraScroll > EXTRA_PX || reaccel) {
               gestureHandled = false;
               extraScroll = 0;
             }
@@ -851,10 +897,18 @@ window.addEventListener("load", () => {
           }
         }
         const target = stepTarget(d);
-        if (target === null) return;
+        if (target === null) {
+          // Já a caminho do fim da Experience: não deixa o scroll normal
+          // interromper o salto
+          if (now < animEnd && d === jumpDir) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+          }
+          return;
+        }
         e.preventDefault();
         e.stopImmediatePropagation();
-        if ((fresh || !gestureHandled) && now >= lockUntil) {
+        if (now - lastJumpAt >= MIN_GAP) {
           gestureHandled = true;
           extraScroll = 0;
           jump(target);
@@ -877,7 +931,7 @@ window.addEventListener("load", () => {
         const target = stepTarget(d);
         if (target === null) return;
         e.preventDefault();
-        if (performance.now() >= lockUntil) jump(target);
+        if (performance.now() - lastJumpAt >= MIN_GAP) jump(target);
       },
       true
     );
@@ -906,7 +960,7 @@ window.addEventListener("load", () => {
         const target = stepTarget(d);
         if (target === null) return;
         if (e.cancelable) e.preventDefault();
-        if (Math.abs(dy) > 12 && !touchDone && performance.now() >= lockUntil) {
+        if (Math.abs(dy) > 12 && !touchDone && performance.now() - lastJumpAt >= MIN_GAP) {
           touchDone = true;
           jump(target);
         }
@@ -932,7 +986,7 @@ window.addEventListener("load", () => {
     function scheduleSnap() {
       clearTimeout(snapTimer);
       snapTimer = setTimeout(() => {
-        if (touching || performance.now() < lockUntil) return;
+        if (touching || performance.now() < animEnd) return;
         // Já está num ponto de descanso: não faz nada
         if (getPts().some((p) => Math.abs(p - lenis.scroll) <= TOL)) return;
         const target = stepTarget(dir);
@@ -953,7 +1007,7 @@ window.addEventListener("load", () => {
 
       // Só quando a inércia vem de um gesto do utilizador (não dos links da
       // barra de navegação, que atravessam o intervalo de propósito)
-      if (performance.now() >= lockUntil && performance.now() - lastUserInput < 1500) {
+      if (performance.now() >= animEnd && performance.now() - lastUserInput < 1500) {
         const first = ptsCache[0];
         const last = ptsCache[ptsCache.length - 1];
         if (prev < first - TOL && scroll >= first - TOL && dir > 0) {
