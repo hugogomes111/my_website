@@ -22,12 +22,54 @@ body {
   height: 78px;
   z-index: 90;
   pointer-events: none;
+}
+
+/* Duas camadas (clara e escura) com crossfade: a escura entra quando a
+   navegação está por cima da consola das Skills (body.nav-on-dark) */
+.nav-scrim::before,
+.nav-scrim::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transition: opacity 0.5s ease;
+}
+
+.nav-scrim::before {
   background: linear-gradient(
     to bottom,
     rgba(255, 255, 255, 0.65) 0%,
     rgba(255, 255, 255, 0.2) 60%,
     rgba(255, 255, 255, 0) 100%
   );
+}
+
+.nav-scrim::after {
+  opacity: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(6, 6, 6, 0.9) 0%,
+    rgba(6, 6, 6, 0.4) 60%,
+    rgba(6, 6, 6, 0) 100%
+  );
+}
+
+body.nav-on-dark .nav-scrim::before {
+  opacity: 0;
+}
+
+body.nav-on-dark .nav-scrim::after {
+  opacity: 1;
+}
+
+body.nav-on-dark .nav-link,
+body.nav-on-dark .nav-status a {
+  color: rgba(255, 255, 255, 0.82);
+}
+
+body.nav-on-dark .nav-link:hover,
+body.nav-on-dark .nav-status a:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
 }
 
 .main-nav {
@@ -840,5 +882,244 @@ body {
 @media (max-width: 1080px) {
   .exp-bg {
     display: none;
+  }
+}
+
+/* ===== Skills — consola em ecrã inteiro ===== */
+
+/* A secção é o "palco" escuro. O fundo passa de branco a quase preto com o
+   scroll (ver script.js). Os 72px de cima ficam livres para a navegação
+   fixa, que assim nunca se sobrepõe à barra do terminal */
+.skills-section {
+  --term-gap: clamp(10px, 1.4vw, 20px); /* margem à volta da janela */
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  min-height: 100vh;
+  min-height: 100svh;
+  padding: 72px var(--term-gap) var(--term-gap);
+  background: #060606;
+  border-top: 0;
+}
+
+/* O título continua no HTML (acessibilidade/SEO), mas a barra do terminal
+   já diz "skills", por isso fica escondido visualmente */
+.skills-section h2 {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* Janela quase de ponta a ponta: só uma margem pequena à volta (--term-gap),
+   com cantos arredondados. Durante a abertura o clip-path (script.js)
+   anima até ao mesmo arredondado */
+.terminal {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  background: #0d0d0d;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  overflow: hidden;
+  will-change: clip-path, transform, opacity;
+}
+
+.terminal-bar {
+  position: relative;
+  flex: none;
+  display: flex;
+  align-items: center;
+  height: 44px;
+  padding: 0 clamp(14px, 2vw, 24px);
+  background: #181818;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+/* Os três pontos clássicos (fechar / minimizar / maximizar), à esquerda */
+.terminal-dots {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.terminal-dots i {
+  display: block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.terminal-dots i:nth-child(1) {
+  background: #ff5f57;
+}
+
+.terminal-dots i:nth-child(2) {
+  background: #febc2e;
+}
+
+.terminal-dots i:nth-child(3) {
+  background: #28c840;
+}
+
+/* Título centrado na barra, independente da largura dos pontos */
+.terminal-title {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 55%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+/* O corpo ocupa o resto do ecrã. O tamanho do texto cresce com a largura
+   (de ~11.5px em telemóvel a ~19px em ecrãs largos) para a consola não
+   parecer vazia quando é full-width */
+.terminal-body {
+  flex: 1 1 auto;
+  padding: clamp(24px, 5vh, 64px) clamp(18px, 6vw, 110px) clamp(32px, 6vh, 72px);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: clamp(0.72rem, 0.55rem + 0.75vw, 1.2rem);
+  line-height: 1.9;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+/* Cada linha do "ficheiro". A indentação faz-se com padding (e não com
+   espaços) para o texto, quando quebra em ecrãs estreitos, ficar alinhado */
+.t-line {
+  display: block;
+}
+
+.t-indent-1 {
+  padding-left: 1.6em;
+}
+
+.t-indent-2 {
+  padding-left: 3.2em;
+}
+
+/* Os itens de cada lista ficam na mesma linha e quebram quando não cabem */
+.t-items {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 0.7em;
+}
+
+.t-item {
+  white-space: nowrap;
+}
+
+.t-cmd-line,
+.t-end-line {
+  display: flex;
+  align-items: center;
+  gap: 0.8em;
+}
+
+.t-cmd-line {
+  margin-bottom: 6px;
+}
+
+.t-end-line {
+  margin-top: 6px;
+}
+
+.t-prompt {
+  color: #7ee787;
+}
+
+.t-cmd {
+  color: #ffffff;
+}
+
+.t-key {
+  color: #ffffff;
+  font-weight: 500;
+}
+
+.t-str {
+  color: rgba(255, 255, 255, 0.62);
+  transition: color 0.2s ease;
+}
+
+.t-str:hover {
+  color: #ffffff;
+}
+
+.t-punc {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+/* Cursor de bloco a piscar no prompt final */
+.t-cursor {
+  display: inline-block;
+  width: 0.55em;
+  height: 1.15em;
+  background: rgba(255, 255, 255, 0.75);
+  animation: terminalBlink 1.1s steps(1) infinite;
+}
+
+@keyframes terminalBlink {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  50.01%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .t-cursor {
+    animation: none;
+  }
+}
+
+@media (max-width: 700px) {
+  .skills-section {
+    padding-top: 62px; /* a navegação é mais pequena em mobile */
+  }
+
+  .terminal {
+    border-radius: 14px;
+  }
+
+  .terminal-bar {
+    height: 40px;
+  }
+
+  .terminal-dots {
+    gap: 7px;
+  }
+
+  .terminal-dots i {
+    width: 10px;
+    height: 10px;
+  }
+
+  .t-indent-1 {
+    padding-left: 1.2em;
+  }
+
+  .t-indent-2 {
+    padding-left: 2.4em;
+  }
+}
+
+/* Em ecrãs muito estreitos, itens longos (ex.: "Creative and Effective
+   Problem-Solving") passam a poder quebrar em vez de saírem da janela */
+@media (max-width: 400px) {
+  .t-item {
+    white-space: normal;
   }
 }

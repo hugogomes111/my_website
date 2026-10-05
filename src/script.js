@@ -1037,6 +1037,105 @@ window.addEventListener("load", () => {
     });
   });
 
+  // Skills (consola em ecrã inteiro) — entrada em 3 tempos:
+  //  1) Escurecer: o fundo da secção passa de branco a quase preto, ligado ao
+  //     scroll (scrub), por isso o ecrã "apaga" à medida que a consola chega.
+  //  2) Abrir: a janela abre do centro para as bordas (clip-path) até ocupar
+  //     o ecrã quase todo (com a margem pequena), com um leve zoom. Corre uma só vez.
+  //  3) Escrever: o comando é "escrito" letra a letra e as linhas do
+  //     skills.json aparecem em cascata, acabando no prompt com cursor.
+  // Com "reduzir movimento" ativo, fica tudo visível e escuro de imediato.
+  const skillsSection = document.querySelector("#skills");
+  const terminal = document.querySelector(".terminal");
+  if (skillsSection && terminal) {
+    // A navegação (fixa, texto escuro) passa a clara enquanto a secção
+    // ocupa o topo do ecrã (classe usada no CSS: body.nav-on-dark)
+    ScrollTrigger.create({
+      trigger: skillsSection,
+      start: "top 40px",
+      end: "bottom 40px",
+      onToggle: (self) =>
+        document.body.classList.toggle("nav-on-dark", self.isActive),
+    });
+
+    if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      // 1) Escurecer, preso ao scroll
+      gsap.fromTo(
+        skillsSection,
+        { backgroundColor: "#ffffff" },
+        {
+          backgroundColor: "#060606",
+          ease: "none",
+          scrollTrigger: {
+            trigger: skillsSection,
+            start: "top 95%",
+            end: "top 10%",
+            scrub: 0.4,
+          },
+        }
+      );
+
+      const cmd = terminal.querySelector(".t-cmd");
+      const lines = terminal.querySelectorAll(".t-out .t-line");
+      const endLine = terminal.querySelector(".t-end-line");
+      const fullCmd = cmd.textContent;
+      const typed = { n: 0 };
+
+      cmd.textContent = "";
+      gsap.set([lines, endLine], { autoAlpha: 0, y: 6 });
+      gsap.set(terminal, {
+        autoAlpha: 0,
+        scale: 0.97,
+        clipPath: "inset(42% 7% 42% 7% round 14px)",
+      });
+
+      gsap
+        .timeline({
+          scrollTrigger: {
+            trigger: skillsSection,
+            start: "top 35%",
+            once: true,
+          },
+        })
+        // 2) Abrir a janela
+        .to(terminal, { autoAlpha: 1, scale: 1, duration: 0.6, ease: "power2.out" }, 0)
+        .to(
+          terminal,
+          {
+            clipPath: "inset(0% 0% 0% 0% round 14px)",
+            duration: 1.1,
+            ease: "power3.inOut",
+          },
+          0
+        )
+        // 3) Escrever o comando e mostrar o resultado
+        .to(
+          typed,
+          {
+            n: fullCmd.length,
+            duration: 0.7,
+            ease: "none",
+            onUpdate: () => {
+              cmd.textContent = fullCmd.slice(0, Math.round(typed.n));
+            },
+          },
+          ">-0.15"
+        )
+        .to(
+          lines,
+          {
+            autoAlpha: 1,
+            y: 0,
+            duration: 0.35,
+            ease: "power1.out",
+            stagger: 0.07,
+          },
+          "+=0.15"
+        )
+        .to(endLine, { autoAlpha: 1, y: 0, duration: 0.35 }, ">-0.1");
+    }
+  }
+
   // Clique nos links da barra de navegação — usa o lenis.scrollTo (em vez do
   // salto nativo do href="#...") para o scroll suave não entrar em conflito.
   // O "Who I Am" é um caso especial: já não é uma secção normal, faz parte
@@ -1059,7 +1158,10 @@ window.addEventListener("load", () => {
         const scrollPos = tl.scrollTrigger.labelToScroll("experienceReady");
         lenis.scrollTo(scrollPos, { duration: 1.4 });
       } else {
-        lenis.scrollTo(targetId, { offset: -70, duration: 1.4 });
+        lenis.scrollTo(targetId, {
+          offset: targetId === "#skills" ? 0 : -70,
+          duration: 1.4,
+        });
       }
     });
   });

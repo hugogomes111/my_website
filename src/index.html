@@ -392,8 +392,77 @@
   </div>
 
 
-  <section id="skills" class="page-section">
+  <!-- Skills: janela de terminal com um "skills.json". As linhas (.t-line)
+       são animadas pelo script.js quando a secção entra no ecrã. -->
+  <section id="skills" class="page-section skills-section">
     <h2>Skills</h2>
+
+    <div class="terminal">
+      <div class="terminal-bar">
+        <span class="terminal-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="terminal-title">~/portfolio/skills — zsh</span>
+      </div>
+
+      <div class="terminal-body">
+        <div class="t-line t-cmd-line">
+          <span class="t-prompt" aria-hidden="true">$</span>
+          <span class="t-cmd">cat skills.json</span>
+        </div>
+
+        <div class="t-out">
+        <div class="t-line"><span class="t-punc">{</span></div>
+        <div class="t-line t-indent-1"><span class="t-key">"programming_languages"</span><span class="t-punc">: [</span></div>
+        <div class="t-line t-indent-2 t-items">
+            <span class="t-item"><span class="t-str">"HTML"</span><span class="t-punc">,</span></span>
+            <span class="t-item"><span class="t-str">"CSS"</span><span class="t-punc">,</span></span>
+            <span class="t-item"><span class="t-str">"JavaScript"</span><span class="t-punc">,</span></span>
+            <span class="t-item"><span class="t-str">"Python"</span><span class="t-punc">,</span></span>
+            <span class="t-item"><span class="t-str">"Java"</span><span class="t-punc">,</span></span>
+            <span class="t-item"><span class="t-str">"C"</span><span class="t-punc">,</span></span>
+            <span class="t-item"><span class="t-str">"C++"</span><span class="t-punc">,</span></span>
+            <span class="t-item"><span class="t-str">"Erlang"</span><span class="t-punc">,</span></span>
+            <span class="t-item"><span class="t-str">"Haskell"</span><span class="t-punc">,</span></span>
+            <span class="t-item"><span class="t-str">"SQL"</span><span class="t-punc">,</span></span>
+            <span class="t-item"><span class="t-str">"R"</span><span class="t-punc">,</span></span>
+            <span class="t-item"><span class="t-str">"Assembly"</span></span>
+        </div>
+        <div class="t-line t-indent-1"><span class="t-punc">]</span><span class="t-punc">,</span></div>
+        <div class="t-line t-indent-1"><span class="t-key">"tools"</span><span class="t-punc">: [</span></div>
+        <div class="t-line t-indent-2 t-items">
+            <span class="t-item"><span class="t-str">"Git"</span><span class="t-punc">,</span></span>
+            <span class="t-item"><span class="t-str">"GitHub"</span></span>
+        </div>
+        <div class="t-line t-indent-1"><span class="t-punc">]</span><span class="t-punc">,</span></div>
+        <div class="t-line t-indent-1"><span class="t-key">"system_design"</span><span class="t-punc">: [</span></div>
+        <div class="t-line t-indent-2 t-items">
+            <span class="t-item"><span class="t-str">"Client-Server Architectures"</span><span class="t-punc">,</span></span>
+            <span class="t-item"><span class="t-str">"Relational Databases"</span><span class="t-punc">,</span></span>
+            <span class="t-item"><span class="t-str">"OOP"</span></span>
+        </div>
+        <div class="t-line t-indent-1"><span class="t-punc">]</span><span class="t-punc">,</span></div>
+        <div class="t-line t-indent-1"><span class="t-key">"analytical_skills"</span><span class="t-punc">: [</span></div>
+        <div class="t-line t-indent-2 t-items">
+            <span class="t-item"><span class="t-str">"Mathematical Foundations"</span><span class="t-punc">,</span></span>
+            <span class="t-item"><span class="t-str">"Creative and Effective Problem-Solving"</span></span>
+        </div>
+        <div class="t-line t-indent-1"><span class="t-punc">]</span><span class="t-punc">,</span></div>
+        <div class="t-line t-indent-1"><span class="t-key">"soft_skills"</span><span class="t-punc">: [</span></div>
+        <div class="t-line t-indent-2 t-items">
+            <span class="t-item"><span class="t-str">"Teamwork"</span><span class="t-punc">,</span></span>
+            <span class="t-item"><span class="t-str">"Communication"</span><span class="t-punc">,</span></span>
+            <span class="t-item"><span class="t-str">"Rapid Learning"</span><span class="t-punc">,</span></span>
+            <span class="t-item"><span class="t-str">"Adaptability"</span></span>
+        </div>
+        <div class="t-line t-indent-1"><span class="t-punc">]</span></div>
+        <div class="t-line"><span class="t-punc">}</span></div>
+        </div>
+
+        <div class="t-line t-end-line">
+          <span class="t-prompt" aria-hidden="true">$</span>
+          <span class="t-cursor" aria-hidden="true"></span>
+        </div>
+      </div>
+    </div>
   </section>
 
   <section id="contact" class="page-section">
