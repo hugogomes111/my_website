@@ -7,7 +7,7 @@ window.scrollTo(0, 0);
 window.addEventListener("load", () => {
   window.scrollTo(0, 0);
 
-  // Espera que a fonte customizada (IBM Plex Mono) esteja mesmo carregada
+  // Espera que a fonte customizada (Plus Jakarta Sans) esteja mesmo carregada
   // antes de medir qualquer texto — sem isto, as medições podem usar a
   // fonte de reserva do browser, com letras de tamanhos diferentes,
   // desalinhando todos os cálculos que dependem de posições exatas
@@ -177,7 +177,10 @@ window.addEventListener("load", () => {
         // menos 0.5 unidades no total): 22.2 unidades x ~160% ~ 3559%.
         // Se mudares CARDS_IN ou CARDS_OUT, ajusta isto na mesma proporção
         // (cada 1 unidade a menos = menos ~160% aqui).
-        end: "+=3559%",
+        // A consola de Skills entrou na timeline (Experience acaba em 22.2,
+        // Skills vai até 23.6): 23.6 unidades x ~160.3% ~ 3783%.
+        // Se mudares as durações da secção Skills, ajusta isto na mesma proporção.
+        end: "+=3783%",
         pin: true,
         scrub: true,
         markers: false,
@@ -380,38 +383,52 @@ window.addEventListener("load", () => {
   );
 
   // 6. Depois do título estar visível um bocado, a frase toda ("My Projects")
-  // faz zoom (scale), ancorada exatamente na perna vertical do "j" via
-  // transform-origin — assim ela cresce sempre a partir desse ponto exato,
-  // sem cálculos de compensação que se desalinham com o zoom
+  // faz zoom (scale), ancorada na perna vertical do "j" via transform-origin,
+  // e desliza para o lado para o "j" acabar no centro do ecrã
   tl.addLabel("projectsZoomStart", "projectsReveal+=1");
 
   const projTitle = document.querySelector(".projects-teaser h2");
   const midLetter = document.querySelector(".mid-letter");
 
-  const projTitleRect = projTitle.getBoundingClientRect();
-  const midLetterRect = midLetter.getBoundingClientRect();
-
-  // Ponto exato (em %) dentro do <h2> onde fica a perna vertical do "j" —
-  // um pouco à direita do centro da letra, porque o gancho curvo em baixo
-  // puxa a caixa da letra toda para a esquerda
-  const jStemX = midLetterRect.left + midLetterRect.width * 0.62;
-  const originXPercent =
-    ((jStemX - projTitleRect.left) / projTitleRect.width) * 100;
+  // A frase começa centrada no ecrã. Durante o zoom ela cresce ancorada na
+  // perna vertical do "j" (transform-origin) e, ao mesmo tempo, desliza na
+  // horizontal (x) o suficiente para essa perna terminar no centro do ecrã.
+  // Posição da perna do "j" na Plus Jakarta Sans: ~50% da largura da
+  // letra (centro do ponto do "j"), medido no ficheiro da fonte. Se mudares
+  // de fonte, este valor tem de ser medido de novo.
+  const J_STEM = 0.5;
+  // Posição (px, sem escala) da perna do "j" dentro do título, medida a
+  // partir da esquerda do <h2>. Usa getBoundingClientRect (as duas caixas
+  // partilham a mesma translação, que se cancela na diferença) e divide pela
+  // escala atual (largura desenhada / offsetWidth, que ignora transforms),
+  // por isso dá o mesmo valor com o título parado ou a meio do zoom.
+  // Nota: não usar offsetLeft aqui — o <h2> tem transform, o que muda o
+  // offsetParent do "j" e faz as duas medições ficarem em referenciais
+  // diferentes (foi isso que apontava o zoom para o "y" de "My")
+  const stemInTitle = () => {
+    const hr = projTitle.getBoundingClientRect();
+    const mr = midLetter.getBoundingClientRect();
+    const k = hr.width / projTitle.offsetWidth || 1;
+    return (mr.left - hr.left) / k + midLetter.offsetWidth * J_STEM;
+  };
+  const stemFromCenter = () => stemInTitle() - projTitle.offsetWidth / 2;
 
   gsap.set(projTitle, {
-    transformOrigin: `${originXPercent}% 50%`,
+    transformOrigin: `${(stemInTitle() / projTitle.offsetWidth) * 100}% 50%`,
   });
-
-  // Escala para a altura da letra "j" cobrir o ecrã, com uma margem —
-  // fica uma faixa alta e fina, com as montanhas visíveis dos lados
-  const targetScale = (window.innerHeight * 25) / midLetterRect.height;
 
   tl.to(
     projTitle,
     {
-      scale: targetScale,
+      // Escala para a altura da letra "j" cobrir o ecrã, com uma margem —
+      // fica uma faixa alta e fina, com as montanhas visíveis dos lados
+      scale: () => (window.innerHeight * 25) / midLetter.offsetHeight,
+      // Move a frase para a esquerda o que for preciso para o "j" ficar
+      // no centro do ecrã no fim do zoom (mesma duração e ease do scale)
+      x: () => -stemFromCenter(),
       duration: 2,
       ease: "power1.in",
+      invalidateOnRefresh: true,
     },
     "projectsZoomStart"
   );
@@ -504,8 +521,8 @@ window.addEventListener("load", () => {
   // plugins: um objeto {p: 0..1} é animado pela timeline (por isso segue o
   // scroll, para a frente e para trás) e, a cada frame, as letras até
   // p * comprimento mostram o texto real e as restantes letras aleatórias.
-  // A fonte é mono, por isso a largura não muda enquanto baralha; os
-  // espaços mantêm-se para as quebras de linha ficarem sempre iguais.
+  // Os espaços mantêm-se para as quebras de linha ficarem o mais estáveis
+  // possível (a fonte não é mono, por isso a largura varia ligeiramente).
   const SCRAMBLE_CHARS =
     "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789#$%&/<>_+=";
   function makeScramble(el) {
@@ -763,6 +780,90 @@ window.addEventListener("load", () => {
     // para o pin soltar já com o ecrã limpo em vez de "subir" com a página
     tl.to(expOverlay, { autoAlpha: 0, y: -30, duration: 0.4, ease: "power1.in" }, pos);
     tl.addLabel("experienceEnd", pos + 0.4);
+
+    // --- Secção "Skills": consola, dentro do MESMO pin ---
+    // Tal como a Experience e os cards de projetos, já não é uma secção que
+    // sobe de baixo: é um overlay (".skills-overlay") dentro do ".wrapper" que
+    // aparece com fade no próprio ecrã, enquanto a Experience desvanece.
+    // Tudo preso ao scroll (scrub) e reversível:
+    //  1) o fundo escurece (o overlay faz fade in);
+    //  2) a janela da consola abre do centro para as bordas (clip-path);
+    //  3) o comando é "escrito" letra a letra e as linhas do skills.json
+    //     aparecem em cascata, acabando no prompt com cursor.
+    // Com "reduzir movimento" ativo só há o fade do overlay (o texto fica todo visível).
+    const skillsOverlay = document.querySelector(".skills-overlay");
+    const terminal = document.querySelector(".terminal");
+
+    if (skillsOverlay && terminal) {
+      const S = pos; // instante em que a Experience começa a desvanecer
+
+      gsap.set(skillsOverlay, { autoAlpha: 0 });
+
+      // 1) Fade in do overlay. A navegação (fixa, texto escuro) passa a clara
+      // enquanto a consola está no ecrã (classe usada no CSS: body.nav-on-dark).
+      // Mantém-se ligada no Contact, que também é escuro.
+      tl.to(
+        skillsOverlay,
+        {
+          autoAlpha: 1,
+          duration: 0.3,
+          ease: "none",
+          onStart: () => document.body.classList.add("nav-on-dark"),
+          onReverseComplete: () => document.body.classList.remove("nav-on-dark"),
+        },
+        S
+      );
+
+      if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        const cmd = terminal.querySelector(".t-cmd");
+        const lines = terminal.querySelectorAll(".t-out .t-line");
+        const endLine = terminal.querySelector(".t-end-line");
+        const fullCmd = cmd.textContent;
+        const typed = { n: 0 };
+
+        cmd.textContent = "";
+        gsap.set([lines, endLine], { autoAlpha: 0, y: 6 });
+        gsap.set(terminal, {
+          autoAlpha: 0,
+          scale: 0.97,
+          clipPath: "inset(42% 7% 42% 7% round 14px)",
+        });
+
+        // 2) Abrir a janela
+        tl.to(terminal, { autoAlpha: 1, scale: 1, duration: 0.35, ease: "power2.out" }, S + 0.2);
+        tl.to(
+          terminal,
+          { clipPath: "inset(0% 0% 0% 0% round 14px)", duration: 0.55, ease: "power3.inOut" },
+          S + 0.2
+        );
+
+        // 3) Escrever o comando e mostrar o resultado
+        tl.to(
+          typed,
+          {
+            n: fullCmd.length,
+            duration: 0.25,
+            ease: "none",
+            onUpdate: () => {
+              cmd.textContent = fullCmd.slice(0, Math.round(typed.n));
+            },
+          },
+          S + 0.7
+        );
+        tl.to(
+          lines,
+          { autoAlpha: 1, y: 0, duration: 0.15, ease: "power1.out", stagger: 0.025 },
+          S + 0.95
+        );
+        tl.to(endLine, { autoAlpha: 1, y: 0, duration: 0.15 }, S + 1.45);
+      }
+
+      // Momento em que a consola já está toda escrita (usado pela navegação)
+      tl.addLabel("skillsReady", S + 1.6);
+      // Uma pequena folga de scroll no fim, antes de o pin largar para o Contact
+      tl.set({}, {}, S + 1.8);
+      tl.addLabel("skillsEnd", S + 1.8);
+    }
   }
 
   // Depois do ScrollTrigger recalcular tudo (o momento em que a posição
@@ -784,7 +885,7 @@ window.addEventListener("load", () => {
     "expPoint1",
     "expPoint2",
     "expPoint3",
-    "experienceEnd",
+    "skillsReady",
   ];
   if (tl.scrollTrigger && SNAP_LABELS.every((l) => l in tl.labels)) {
     const TOL = 2; // px de tolerância
@@ -996,7 +1097,7 @@ window.addEventListener("load", () => {
     // Entrada no intervalo vinda da inércia do scroll normal (ex.: a passar
     // da secção anterior): em vez de deixar o Lenis "escorregar" para o meio
     // de uma transição, trava logo no primeiro ponto (cards) ao entrar a
-    // descer, ou no último marco ao entrar a subir pelo fim
+    // descer, ou na consola de Skills ao entrar a subir pelo fim
     let ptsCache = getPts();
     ScrollTrigger.addEventListener("refresh", () => (ptsCache = getPts()));
     lenis.on("scroll", ({ scroll }) => {
@@ -1017,7 +1118,7 @@ window.addEventListener("load", () => {
         }
         if (prev > last + TOL && scroll <= last + TOL && dir < 0) {
           gestureHandled = true;
-          jump(ptsCache[ptsCache.length - 2]);
+          jump(last);
           return;
         }
       }
@@ -1036,105 +1137,6 @@ window.addEventListener("load", () => {
       card.classList.remove("is-hovering");
     });
   });
-
-  // Skills (consola em ecrã inteiro) — entrada em 3 tempos:
-  //  1) Escurecer: o fundo da secção passa de branco a quase preto, ligado ao
-  //     scroll (scrub), por isso o ecrã "apaga" à medida que a consola chega.
-  //  2) Abrir: a janela abre do centro para as bordas (clip-path) até ocupar
-  //     o ecrã quase todo (com a margem pequena), com um leve zoom. Corre uma só vez.
-  //  3) Escrever: o comando é "escrito" letra a letra e as linhas do
-  //     skills.json aparecem em cascata, acabando no prompt com cursor.
-  // Com "reduzir movimento" ativo, fica tudo visível e escuro de imediato.
-  const skillsSection = document.querySelector("#skills");
-  const terminal = document.querySelector(".terminal");
-  if (skillsSection && terminal) {
-    // A navegação (fixa, texto escuro) passa a clara enquanto a secção
-    // ocupa o topo do ecrã (classe usada no CSS: body.nav-on-dark)
-    ScrollTrigger.create({
-      trigger: skillsSection,
-      start: "top 40px",
-      end: "bottom 40px",
-      onToggle: (self) =>
-        document.body.classList.toggle("nav-on-dark", self.isActive),
-    });
-
-    if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      // 1) Escurecer, preso ao scroll
-      gsap.fromTo(
-        skillsSection,
-        { backgroundColor: "#ffffff" },
-        {
-          backgroundColor: "#060606",
-          ease: "none",
-          scrollTrigger: {
-            trigger: skillsSection,
-            start: "top 95%",
-            end: "top 10%",
-            scrub: 0.4,
-          },
-        }
-      );
-
-      const cmd = terminal.querySelector(".t-cmd");
-      const lines = terminal.querySelectorAll(".t-out .t-line");
-      const endLine = terminal.querySelector(".t-end-line");
-      const fullCmd = cmd.textContent;
-      const typed = { n: 0 };
-
-      cmd.textContent = "";
-      gsap.set([lines, endLine], { autoAlpha: 0, y: 6 });
-      gsap.set(terminal, {
-        autoAlpha: 0,
-        scale: 0.97,
-        clipPath: "inset(42% 7% 42% 7% round 14px)",
-      });
-
-      gsap
-        .timeline({
-          scrollTrigger: {
-            trigger: skillsSection,
-            start: "top 35%",
-            once: true,
-          },
-        })
-        // 2) Abrir a janela
-        .to(terminal, { autoAlpha: 1, scale: 1, duration: 0.6, ease: "power2.out" }, 0)
-        .to(
-          terminal,
-          {
-            clipPath: "inset(0% 0% 0% 0% round 14px)",
-            duration: 1.1,
-            ease: "power3.inOut",
-          },
-          0
-        )
-        // 3) Escrever o comando e mostrar o resultado
-        .to(
-          typed,
-          {
-            n: fullCmd.length,
-            duration: 0.7,
-            ease: "none",
-            onUpdate: () => {
-              cmd.textContent = fullCmd.slice(0, Math.round(typed.n));
-            },
-          },
-          ">-0.15"
-        )
-        .to(
-          lines,
-          {
-            autoAlpha: 1,
-            y: 0,
-            duration: 0.35,
-            ease: "power1.out",
-            stagger: 0.07,
-          },
-          "+=0.15"
-        )
-        .to(endLine, { autoAlpha: 1, y: 0, duration: 0.35 }, ">-0.1");
-    }
-  }
 
   // Clique nos links da barra de navegação — usa o lenis.scrollTo (em vez do
   // salto nativo do href="#...") para o scroll suave não entrar em conflito.
@@ -1157,9 +1159,14 @@ window.addEventListener("load", () => {
         // exata em que o título e a linha já estão visíveis
         const scrollPos = tl.scrollTrigger.labelToScroll("experienceReady");
         lenis.scrollTo(scrollPos, { duration: 1.4 });
+      } else if (targetId === "#skills") {
+        // Também faz parte da timeline pinned: vai para a posição em que a
+        // consola já está toda escrita
+        const scrollPos = tl.scrollTrigger.labelToScroll("skillsReady");
+        lenis.scrollTo(scrollPos, { duration: 1.4 });
       } else {
         lenis.scrollTo(targetId, {
-          offset: targetId === "#skills" ? 0 : -70,
+          offset: -70,
           duration: 1.4,
         });
       }
